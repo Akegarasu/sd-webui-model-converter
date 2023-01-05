@@ -48,7 +48,7 @@ def add_tab():
                                           lambda: {"choices": sd_models.checkpoint_tiles()},
                                           "refresh_checkpoint_Z")
 
-                custom_name = gr.Textbox(label="Custom Name (Optional)", elem_id="modelmerger_custom_name")
+                custom_name = gr.Textbox(label="Custom Name (Optional)", elem_id="model_converter_custom_name")
 
                 with gr.Row():
                     checkpoint_format = gr.Radio(choices=["ckpt", "safetensors"], value="ckpt",
