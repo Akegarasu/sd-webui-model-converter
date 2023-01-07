@@ -68,8 +68,8 @@ def add_tab():
                 with gr.Row():
                     precision = gr.Radio(choices=["fp32", "fp16", "bf16"], value="fp32",
                                          label="Precision", elem_id="checkpoint_precision")
-                    m_type = gr.Radio(choices=["all", "no-ema", "ema-only"], value="all",
-                                      label="Model Type")
+                    m_type = gr.Radio(choices=["disabled", "no-ema", "ema-only"], value="disabled",
+                                      label="Pruning Methods")
 
                 with gr.Row():
                     checkpoint_formats = gr.CheckboxGroup(choices=["ckpt", "safetensors"], value="ckpt",
@@ -159,7 +159,7 @@ def do_convert(model, checkpoint_formats: List[str],
 
     print("Converting model...")
 
-    if conv_type == "ema-only" or conv_type == "prune":
+    if conv_type == "ema-only":
         for k in tqdm.tqdm(state_dict):
             ema_k = "___"
             try:
