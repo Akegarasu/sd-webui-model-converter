@@ -155,7 +155,7 @@ def do_convert(model, checkpoint_formats: List[str],
         elif conv_t == "copy":
             ok[wk] = t
         elif conv_t == "delete":
-            return None
+            return
 
     print("Converting model...")
 
