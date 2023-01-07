@@ -69,11 +69,11 @@ def add_tab():
                     precision = gr.Radio(choices=["fp32", "fp16", "bf16"], value="fp32",
                                          label="Precision", elem_id="checkpoint_precision")
                     m_type = gr.Radio(choices=["all", "no-ema", "ema-only"], value="all",
-                                      label="Model type")
+                                      label="Model Type")
 
                 with gr.Row():
                     checkpoint_formats = gr.CheckboxGroup(choices=["ckpt", "safetensors"], value="ckpt",
-                                                          label="Checkpoint format", elem_id="checkpoint_format")
+                                                          label="Checkpoint Format", elem_id="checkpoint_format")
                     show_extra_options = gr.Checkbox(label="Show extra options", value=False)
 
                 with gr.Row(visible=False) as extra_options:
