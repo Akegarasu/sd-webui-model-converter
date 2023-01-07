@@ -71,7 +71,7 @@ def add_tab():
                 outputs=[submit_result]
             )
 
-    return [(ui, "model convert", "model_convert")]
+    return [(ui, "Model convert", "model_convert")]
 
 
 def load_model(path):
