@@ -145,7 +145,7 @@ def do_convert(model, checkpoint_formats: List[str],
 
     def _hf(wk: str, t: Tensor):
         if not isinstance(t, Tensor):
-            return 
+            return
         w_t = check_weight_type(wk)
         conv_t = extra_opt[w_t]
         if conv_t == "convert":
@@ -182,7 +182,12 @@ def do_convert(model, checkpoint_formats: List[str],
 
     output = ""
     ckpt_dir = shared.cmd_opts.ckpt_dir or sd_models.model_path
-    save_name = custom_name if custom_name != "" else f"{model_info.model_name}-{precision}-{conv_type}"
+    save_name = f"{model_info.model_name}-{precision}"
+    if conv_type != "disabled":
+        save_name += f"-{conv_type}"
+
+    if custom_name != "":
+        save_name = custom_name
 
     for fmt in checkpoint_formats:
         ext = ".safetensors" if fmt == "safetensors" else ".ckpt"
