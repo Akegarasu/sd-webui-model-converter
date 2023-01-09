@@ -68,7 +68,7 @@ def add_tab():
                                       label="Pruning Methods")
 
                 with gr.Row():
-                    checkpoint_formats = gr.CheckboxGroup(choices=["ckpt", "safetensors"], value="ckpt",
+                    checkpoint_formats = gr.CheckboxGroup(choices=["ckpt", "safetensors"], value=["ckpt"],
                                                           label="Checkpoint Format", elem_id="checkpoint_format")
                     show_extra_options = gr.Checkbox(label="Show extra options", value=False)
 
