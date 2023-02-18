@@ -166,16 +166,6 @@ def do_convert(model, checkpoint_formats: List[str],
 
     print("Converting model...")
 
-    bake_in_vae_filename = sd_vae.vae_dict.get(bake_in_vae, None)
-    if bake_in_vae_filename is not None:
-        print(f"Baking in VAE from {bake_in_vae_filename}")
-        vae_dict = sd_vae.load_vae_dict(bake_in_vae_filename, map_location='cpu')
-
-        for k, v in vae_dict.items():
-            _hf(k, vae_dict[k])
-
-        del vae_dict
-
     if conv_type == "ema-only":
         for k in tqdm.tqdm(state_dict):
             ema_k = "___"
@@ -198,6 +188,16 @@ def do_convert(model, checkpoint_formats: List[str],
     else:
         for k, v in tqdm.tqdm(state_dict.items()):
             _hf(k, v)
+
+    bake_in_vae_filename = sd_vae.vae_dict.get(bake_in_vae, None)
+    if bake_in_vae_filename is not None:
+        print(f"Baking in VAE from {bake_in_vae_filename}")
+        vae_dict = sd_vae.load_vae_dict(bake_in_vae_filename, map_location='cpu')
+
+        for k, v in vae_dict.items():
+            _hf(k, vae_dict[k])
+
+        del vae_dict
 
     output = ""
     ckpt_dir = shared.cmd_opts.ckpt_dir or sd_models.model_path
