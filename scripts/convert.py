@@ -6,7 +6,7 @@ import safetensors.torch
 import gradio as gr
 from torch import Tensor
 from modules import script_callbacks, shared
-from modules import sd_models
+from modules import sd_models, sd_vae
 from modules.ui import create_refresh_button
 from typing import List
 
@@ -72,6 +72,14 @@ def add_tab():
                                                           label="Checkpoint Format", elem_id="checkpoint_format")
                     show_extra_options = gr.Checkbox(label="Show extra options", value=False)
 
+                # with gr.Column():
+                with gr.Row():
+                    bake_in_vae = gr.Dropdown(choices=["None"] + list(sd_vae.vae_dict), value="None",
+                                              label="Bake in VAE", elem_id="modelmerger_bake_in_vae")
+                    create_refresh_button(bake_in_vae, sd_vae.refresh_vae_list,
+                                          lambda: {"choices": ["None"] + list(sd_vae.vae_dict)},
+                                          "model_converter_refresh_bake_in_vae")
+
                 with gr.Row(visible=False) as extra_options:
                     specific_part_conv = ["copy", "convert", "delete"]
                     unet_conv = gr.Dropdown(specific_part_conv, value="convert", label="unet")
@@ -100,7 +108,8 @@ def add_tab():
                     unet_conv,
                     text_encoder_conv,
                     vae_conv,
-                    others_conv
+                    others_conv,
+                    bake_in_vae
                 ],
                 outputs=[submit_result]
             )
@@ -119,7 +128,7 @@ def load_model(path):
 
 def do_convert(model, checkpoint_formats: List[str],
                precision: str, conv_type: str, custom_name: str,
-               unet_conv, text_encoder_conv, vae_conv, others_conv):
+               unet_conv, text_encoder_conv, vae_conv, others_conv, bake_in_vae):
     if model == "":
         return "Error: you must choose a model"
     if len(checkpoint_formats) == 0:
@@ -156,6 +165,16 @@ def do_convert(model, checkpoint_formats: List[str],
             return
 
     print("Converting model...")
+
+    bake_in_vae_filename = sd_vae.vae_dict.get(bake_in_vae, None)
+    if bake_in_vae_filename is not None:
+        print(f"Baking in VAE from {bake_in_vae_filename}")
+        vae_dict = sd_vae.load_vae_dict(bake_in_vae_filename, map_location='cpu')
+
+        for k, v in vae_dict.items():
+            _hf(k, vae_dict[k])
+
+        del vae_dict
 
     if conv_type == "ema-only":
         for k in tqdm.tqdm(state_dict):
