@@ -117,8 +117,8 @@ def load_model(path):
     return state_dict
 
 
-def do_convert(model, checkpoint_formats: List[str],
-               precision: str, conv_type: str, custom_name: str,
+def do_convert(model, checkpoint_formats,
+               precision, conv_type, custom_name,
                unet_conv, text_encoder_conv, vae_conv, others_conv):
     if model == "":
         return "Error: you must choose a model"
