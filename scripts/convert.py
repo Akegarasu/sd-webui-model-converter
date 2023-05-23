@@ -1,4 +1,3 @@
-import html
 import os.path
 import tqdm
 import torch
@@ -8,15 +7,18 @@ from torch import Tensor
 from modules import script_callbacks, shared
 from modules import sd_models
 from modules.ui import create_refresh_button
-from typing import List
+
+# position_ids in clip is int64. model_ema.num_updates is int32
+dtypes_to_fp16 = {torch.float32, torch.float64, torch.bfloat16}
+dtypes_to_bf16 = {torch.float32, torch.float64, torch.float16}
 
 
 def conv_fp16(t: Tensor):
-    return t.half()
+    return t.half() if t.dtype in dtypes_to_fp16 else t
 
 
 def conv_bf16(t: Tensor):
-    return t.bfloat16()
+    return t.bfloat16() if t.dtype in dtypes_to_bf16 else t
 
 
 def conv_full(t):
@@ -71,6 +73,7 @@ def add_tab():
                     checkpoint_formats = gr.CheckboxGroup(choices=["ckpt", "safetensors"], value=["ckpt"],
                                                           label="Checkpoint Format", elem_id="checkpoint_format")
                     show_extra_options = gr.Checkbox(label="Show extra options", value=False)
+                    fix_clip = gr.Checkbox(label="Fix clip", value=False)
 
                 with gr.Row(visible=False) as extra_options:
                     specific_part_conv = ["copy", "convert", "delete"]
@@ -100,7 +103,8 @@ def add_tab():
                     unet_conv,
                     text_encoder_conv,
                     vae_conv,
-                    others_conv
+                    others_conv,
+                    fix_clip
                 ],
                 outputs=[submit_result]
             )
@@ -117,9 +121,42 @@ def load_model(path):
     return state_dict
 
 
+def fix_model(model, fix_clip=False):
+    # code from model-toolkit
+    nai_keys = {
+        'cond_stage_model.transformer.embeddings.': 'cond_stage_model.transformer.text_model.embeddings.',
+        'cond_stage_model.transformer.encoder.': 'cond_stage_model.transformer.text_model.encoder.',
+        'cond_stage_model.transformer.final_layer_norm.': 'cond_stage_model.transformer.text_model.final_layer_norm.'
+    }
+    for k in list(model.keys()):
+        for r in nai_keys:
+            if type(k) == str and k.startswith(r):
+                new_key = k.replace(r, nai_keys[r])
+                model[new_key] = model[k]
+                del model[k]
+                print(f"fixed novelai error key {k}")
+                break
+    if fix_clip:
+        i = "cond_stage_model.transformer.text_model.embeddings.position_ids"
+        if i in model:
+            correct = torch.Tensor([list(range(77))]).to(torch.int64)
+            now = model[i].to(torch.int64)
+
+            broken = correct.ne(now)
+            broken = [i for i in range(77) if broken[0][i]]
+            model[i] = correct
+            if len(broken) != 0:
+                print(f"fixed broken clip\n{broken}")
+            else:
+                print("clip in this model is fine, skip fixing...")
+
+    return model
+
+
 def do_convert(model, checkpoint_formats,
                precision, conv_type, custom_name,
-               unet_conv, text_encoder_conv, vae_conv, others_conv):
+               unet_conv, text_encoder_conv, vae_conv, others_conv,
+               fix_clip):
     if model == "":
         return "Error: you must choose a model"
     if len(checkpoint_formats) == 0:
@@ -174,11 +211,13 @@ def do_convert(model, checkpoint_formats,
             #     print("skipped: " + k)
     elif conv_type == "no-ema":
         for k, v in tqdm.tqdm(state_dict.items()):
-            if "model_ema" not in k:
+            if "model_ema." not in k:
                 _hf(k, v)
     else:
         for k, v in tqdm.tqdm(state_dict.items()):
             _hf(k, v)
+
+    ok = fix_model(ok, fix_clip=fix_clip)
 
     output = ""
     ckpt_dir = shared.cmd_opts.ckpt_dir or sd_models.model_path
