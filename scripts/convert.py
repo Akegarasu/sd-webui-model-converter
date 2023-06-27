@@ -144,8 +144,8 @@ def fix_model(model, fix_clip=False):
 
             broken = correct.ne(now)
             broken = [i for i in range(77) if broken[0][i]]
-            model[i] = correct
             if len(broken) != 0:
+                model[i] = correct
                 print(f"fixed broken clip\n{broken}")
             else:
                 print("clip in this model is fine, skip fixing...")
@@ -162,6 +162,8 @@ def do_convert(model, checkpoint_formats,
     if len(checkpoint_formats) == 0:
         return "Error: at least choose one model save format"
 
+    model_info = sd_models.checkpoints_list[model]
+
     extra_opt = {
         "unet": unet_conv,
         "clip": text_encoder_conv,
@@ -170,21 +172,20 @@ def do_convert(model, checkpoint_formats,
     }
     shared.state.begin()
     shared.state.job = 'model-convert'
-
-    model_info = sd_models.checkpoints_list[model]
     shared.state.textinfo = f"Loading {model_info.filename}..."
     print(f"Loading {model_info.filename}...")
-    state_dict = load_model(model_info.filename)
 
-    ok = {}  # {"state_dict": {}}
+    ok = {}
+    state_dict = load_model(model_info.filename)
+    fix_model(state_dict, fix_clip=fix_clip)
 
     conv_func = _g_precision_func[precision]
 
     def _hf(wk: str, t: Tensor):
         if not isinstance(t, Tensor):
             return
-        w_t = check_weight_type(wk)
-        conv_t = extra_opt[w_t]
+        weight_type = check_weight_type(wk)
+        conv_t = extra_opt[weight_type]
         if conv_t == "convert":
             ok[wk] = conv_func(t)
         elif conv_t == "copy":
@@ -217,8 +218,6 @@ def do_convert(model, checkpoint_formats,
         for k, v in tqdm.tqdm(state_dict.items()):
             _hf(k, v)
 
-    ok = fix_model(ok, fix_clip=fix_clip)
-
     output = ""
     ckpt_dir = shared.cmd_opts.ckpt_dir or sd_models.model_path
     save_name = f"{model_info.model_name}-{precision}"
@@ -227,6 +226,9 @@ def do_convert(model, checkpoint_formats,
 
     if custom_name != "":
         save_name = custom_name
+
+    if fix_clip:
+        save_name += f"-clip-fix"
 
     for fmt in checkpoint_formats:
         ext = ".safetensors" if fmt == "safetensors" else ".ckpt"
