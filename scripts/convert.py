@@ -73,6 +73,9 @@ def add_tab():
                     checkpoint_formats = gr.CheckboxGroup(choices=["ckpt", "safetensors"], value=["ckpt"],
                                                           label="Checkpoint Format", elem_id="checkpoint_format")
                     show_extra_options = gr.Checkbox(label="Show extra options", value=False)
+
+                with gr.Row():
+                    force_position_id = gr.Checkbox(label="Force CLIP position_id to int64 before convert", value=False)
                     fix_clip = gr.Checkbox(label="Fix clip", value=False)
 
                 with gr.Row(visible=False) as extra_options:
@@ -104,7 +107,8 @@ def add_tab():
                     text_encoder_conv,
                     vae_conv,
                     others_conv,
-                    fix_clip
+                    fix_clip,
+                    force_position_id
                 ],
                 outputs=[submit_result]
             )
@@ -121,13 +125,14 @@ def load_model(path):
     return state_dict
 
 
-def fix_model(model, fix_clip=False):
+def fix_model(model, fix_clip=False, force_position_id=False):
     # code from model-toolkit
     nai_keys = {
         'cond_stage_model.transformer.embeddings.': 'cond_stage_model.transformer.text_model.embeddings.',
         'cond_stage_model.transformer.encoder.': 'cond_stage_model.transformer.text_model.encoder.',
         'cond_stage_model.transformer.final_layer_norm.': 'cond_stage_model.transformer.text_model.final_layer_norm.'
     }
+    position_id_key = "cond_stage_model.transformer.text_model.embeddings.position_ids"
     for k in list(model.keys()):
         for r in nai_keys:
             if type(k) == str and k.startswith(r):
@@ -136,16 +141,19 @@ def fix_model(model, fix_clip=False):
                 del model[k]
                 print(f"fixed novelai error key {k}")
                 break
+
+    if force_position_id and position_id_key in model:
+        model[position_id_key] = model[position_id_key].to(torch.int64)
+
     if fix_clip:
-        i = "cond_stage_model.transformer.text_model.embeddings.position_ids"
-        if i in model:
+        if position_id_key in model:
             correct = torch.Tensor([list(range(77))]).to(torch.int64)
-            now = model[i].to(torch.int64)
+            now = model[position_id_key].to(torch.int64)
 
             broken = correct.ne(now)
             broken = [i for i in range(77) if broken[0][i]]
             if len(broken) != 0:
-                model[i] = correct
+                model[position_id_key] = correct
                 print(f"fixed broken clip\n{broken}")
             else:
                 print("clip in this model is fine, skip fixing...")
@@ -156,7 +164,7 @@ def fix_model(model, fix_clip=False):
 def do_convert(model, checkpoint_formats,
                precision, conv_type, custom_name,
                unet_conv, text_encoder_conv, vae_conv, others_conv,
-               fix_clip):
+               fix_clip, force_position_id):
     if model == "":
         return "Error: you must choose a model"
     if len(checkpoint_formats) == 0:
@@ -177,7 +185,7 @@ def do_convert(model, checkpoint_formats,
 
     ok = {}
     state_dict = load_model(model_info.filename)
-    fix_model(state_dict, fix_clip=fix_clip)
+    fix_model(state_dict, fix_clip=fix_clip, force_position_id=force_position_id)
 
     conv_func = _g_precision_func[precision]
 
@@ -248,3 +256,4 @@ def do_convert(model, checkpoint_formats,
 
 
 script_callbacks.on_ui_tabs(add_tab)
+
