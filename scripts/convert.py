@@ -232,11 +232,11 @@ def do_convert(model, checkpoint_formats,
     if conv_type != "disabled":
         save_name += f"-{conv_type}"
 
-    if custom_name != "":
-        save_name = custom_name
-
     if fix_clip:
         save_name += f"-clip-fix"
+
+    if custom_name != "":
+        save_name = custom_name
 
     for fmt in checkpoint_formats:
         ext = ".safetensors" if fmt == "safetensors" else ".ckpt"
