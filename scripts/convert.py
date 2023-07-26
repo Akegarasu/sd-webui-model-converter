@@ -64,7 +64,7 @@ def add_tab():
                 custom_name = gr.Textbox(label="Custom Name (Optional)", elem_id="model_converter_custom_name")
 
                 with gr.Row():
-                    precision = gr.Radio(choices=["fp32", "fp16", "bf16"], value="fp32",
+                    precision = gr.Radio(choices=["fp32", "fp16", "bf16"], value="fp16",
                                          label="Precision", elem_id="checkpoint_precision")
                     m_type = gr.Radio(choices=["disabled", "no-ema", "ema-only"], value="disabled",
                                       label="Pruning Methods")
