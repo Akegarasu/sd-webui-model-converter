@@ -75,7 +75,7 @@ def add_tab():
                     show_extra_options = gr.Checkbox(label="Show extra options", value=False)
 
                 with gr.Row():
-                    force_position_id = gr.Checkbox(label="Force CLIP position_id to int64 before convert", value=False)
+                    force_position_id = gr.Checkbox(label="Force CLIP position_id to int64 before convert", value=True)
                     fix_clip = gr.Checkbox(label="Fix clip", value=False)
 
                 with gr.Row(visible=False) as extra_options:
