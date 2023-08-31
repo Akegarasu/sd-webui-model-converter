@@ -49,7 +49,7 @@ def check_weight_type(k: str) -> str:
 
 def add_tab():
     with gr.Blocks(analytics_enabled=False) as ui:
-        with gr.Row().style(equal_height=False):
+        with gr.Row(equal_height=True):
             with gr.Column(variant='panel'):
                 gr.HTML(value="<p>Converted checkpoints will be saved in your <b>checkpoint</b> directory.</p>")
 
