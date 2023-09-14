@@ -1,16 +1,21 @@
-import os.path
+import os
 import tqdm
 import torch
 import safetensors.torch
-import gradio as gr
 from torch import Tensor
-from modules import script_callbacks, shared
+from modules import shared
 from modules import sd_models
-from modules.ui import create_refresh_button
 
 # position_ids in clip is int64. model_ema.num_updates is int32
 dtypes_to_fp16 = {torch.float32, torch.float64, torch.bfloat16}
 dtypes_to_bf16 = {torch.float32, torch.float64, torch.float16}
+
+
+class MockModelInfo:
+    def __init__(self, model_path: str) -> None:
+        self.filepath = model_path
+        self.filename: str = os.path.basename(model_path)
+        self.model_name: str = self.filename.split(".")[0]
 
 
 def conv_fp16(t: Tensor):
@@ -33,10 +38,6 @@ _g_precision_func = {
 }
 
 
-def gr_show(visible=True):
-    return {"visible": visible, "__type__": "update"}
-
-
 def check_weight_type(k: str) -> str:
     if k.startswith("model.diffusion_model"):
         return "unet"
@@ -45,75 +46,6 @@ def check_weight_type(k: str) -> str:
     elif k.startswith("cond_stage_model"):
         return "clip"
     return "other"
-
-
-def add_tab():
-    with gr.Blocks(analytics_enabled=False) as ui:
-        with gr.Row(equal_height=True):
-            with gr.Column(variant='panel'):
-                gr.HTML(value="<p>Converted checkpoints will be saved in your <b>checkpoint</b> directory.</p>")
-
-                with gr.Row():
-                    model_name = gr.Dropdown(sd_models.checkpoint_tiles(),
-                                             elem_id="model_converter_model_name",
-                                             label="Model")
-                    create_refresh_button(model_name, sd_models.list_models,
-                                          lambda: {"choices": sd_models.checkpoint_tiles()},
-                                          "refresh_checkpoint_Z")
-
-                custom_name = gr.Textbox(label="Custom Name (Optional)", elem_id="model_converter_custom_name")
-
-                with gr.Row():
-                    precision = gr.Radio(choices=["fp32", "fp16", "bf16"], value="fp16",
-                                         label="Precision", elem_id="checkpoint_precision")
-                    m_type = gr.Radio(choices=["disabled", "no-ema", "ema-only"], value="disabled",
-                                      label="Pruning Methods")
-
-                with gr.Row():
-                    checkpoint_formats = gr.CheckboxGroup(choices=["ckpt", "safetensors"], value=["safetensors"],
-                                                          label="Checkpoint Format", elem_id="checkpoint_format")
-                    show_extra_options = gr.Checkbox(label="Show extra options", value=False)
-
-                with gr.Row():
-                    force_position_id = gr.Checkbox(label="Force CLIP position_id to int64 before convert", value=True)
-                    fix_clip = gr.Checkbox(label="Fix clip", value=False)
-
-                with gr.Row(visible=False) as extra_options:
-                    specific_part_conv = ["copy", "convert", "delete"]
-                    unet_conv = gr.Dropdown(specific_part_conv, value="convert", label="unet")
-                    text_encoder_conv = gr.Dropdown(specific_part_conv, value="convert", label="text encoder")
-                    vae_conv = gr.Dropdown(specific_part_conv, value="convert", label="vae")
-                    others_conv = gr.Dropdown(specific_part_conv, value="convert", label="others")
-
-                model_converter_convert = gr.Button(elem_id="model_converter_convert", label="Convert",
-                                                    variant='primary')
-
-            with gr.Column(variant='panel'):
-                submit_result = gr.Textbox(elem_id="model_converter_result", show_label=False)
-
-            show_extra_options.change(
-                fn=lambda x: gr_show(x),
-                inputs=[show_extra_options],
-                outputs=[extra_options],
-            )
-
-            model_converter_convert.click(
-                fn=do_convert,
-                inputs=[
-                    model_name,
-                    checkpoint_formats,
-                    precision, m_type, custom_name,
-                    unet_conv,
-                    text_encoder_conv,
-                    vae_conv,
-                    others_conv,
-                    fix_clip,
-                    force_position_id
-                ],
-                outputs=[submit_result]
-            )
-
-    return [(ui, "Model Converter", "model_converter")]
 
 
 def load_model(path):
@@ -161,16 +93,45 @@ def fix_model(model, fix_clip=False, force_position_id=False):
     return model
 
 
-def do_convert(model, checkpoint_formats,
+def convert_warp(
+        model_name, model_path, directory,
+        *args
+):
+    if sum(map(bool, [model_name, model_path, directory])) != 1:
+        print("Check your inputs. Multiple input was set")
+        return
+
+    if directory != "":
+        if not os.path.exists(directory) or not os.path.isdir(directory):
+            return "Error: path not exists or not dir"
+
+        files = [f for f in os.listdir(directory) if f.endswith(".ckpt") or f.endswith(".safetensors")]
+
+        if len(files) == 0:
+            return "Error: cant found model in directory"
+
+        for m in files:
+            do_convert(MockModelInfo(os.path.join(directory, m)), *args)
+
+    elif model_path != "":
+        if os.path.exists(model_path):
+            return do_convert(MockModelInfo(model_path), *args)
+
+    elif model_name != "":
+        return do_convert(sd_models.checkpoints_list[model_name])
+
+    else:
+        return "Error: must choose a model"
+
+
+def do_convert(model_info: MockModelInfo,
+               checkpoint_formats,
                precision, conv_type, custom_name,
                unet_conv, text_encoder_conv, vae_conv, others_conv,
                fix_clip, force_position_id):
-    if model == "":
-        return "Error: you must choose a model"
+
     if len(checkpoint_formats) == 0:
         return "Error: at least choose one model save format"
-
-    model_info = sd_models.checkpoints_list[model]
 
     extra_opt = {
         "unet": unet_conv,
@@ -184,7 +145,7 @@ def do_convert(model, checkpoint_formats,
     print(f"Loading {model_info.filename}...")
 
     ok = {}
-    state_dict = load_model(model_info.filename)
+    state_dict = load_model(model_info.filepath)
     fix_model(state_dict, fix_clip=fix_clip, force_position_id=force_position_id)
 
     conv_func = _g_precision_func[precision]
@@ -227,7 +188,7 @@ def do_convert(model, checkpoint_formats,
             _hf(k, v)
 
     output = ""
-    ckpt_dir = shared.cmd_opts.ckpt_dir or sd_models.model_path
+    ckpt_dir = os.path.dirname(model_info.filepath)
     save_name = f"{model_info.model_name}-{precision}"
     if conv_type != "disabled":
         save_name += f"-{conv_type}"
@@ -253,7 +214,3 @@ def do_convert(model, checkpoint_formats,
 
     shared.state.end()
     return output[:-1]
-
-
-script_callbacks.on_ui_tabs(add_tab)
-
