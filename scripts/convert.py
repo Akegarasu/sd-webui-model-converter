@@ -98,7 +98,7 @@ def convert_warp(
         *args
 ):
     if sum(map(bool, [model_name, model_path, directory])) != 1:
-        print("Check your inputs. Multiple input was set")
+        print("Check your inputs. Multiple input was set or missing input")
         return
 
     if directory != "":
@@ -110,8 +110,12 @@ def convert_warp(
         if len(files) == 0:
             return "Error: cant found model in directory"
 
+        # remove custom filename in batch processing
+        _args = list(args)
+        _args[3] = ""
+
         for m in files:
-            do_convert(MockModelInfo(os.path.join(directory, m)), *args)
+            do_convert(MockModelInfo(os.path.join(directory, m)), *_args)
 
     elif model_path != "":
         if os.path.exists(model_path):
