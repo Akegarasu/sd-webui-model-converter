@@ -23,7 +23,7 @@ def add_tab():
                             create_refresh_button(model_name, sd_models.list_models,
                                                   lambda: {"choices": sd_models.checkpoint_tiles()},
                                                   "refresh_checkpoint_Z")
-                        custom_name = gr.Textbox(label="Custom Name (Optional)", elem_id="model_converter_custom_name")
+                        custom_name = gr.Textbox(label="Custom Name (Optional)")
 
                     with gr.TabItem(label='Input file path'):
                         with gr.Row():
@@ -31,7 +31,7 @@ def add_tab():
 
                     with gr.TabItem(label='Batch from directory'):
                         with gr.Row():
-                            directory = gr.Textbox(label="Directory")
+                            input_directory = gr.Textbox(label="Input Directory")
 
                 with gr.Row():
                     precision = gr.Radio(choices=["fp32", "fp16", "bf16"], value="fp16", label="Precision")
@@ -70,7 +70,7 @@ def add_tab():
                 inputs=[
                     model_name,
                     model_path,
-                    directory,
+                    input_directory,
                     checkpoint_formats,
                     precision, m_type, custom_name,
                     unet_conv,
