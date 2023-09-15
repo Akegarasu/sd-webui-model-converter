@@ -122,7 +122,8 @@ def convert_warp(
             return do_convert(MockModelInfo(model_path), *args)
 
     elif model_name != "":
-        return do_convert(sd_models.checkpoints_list[model_name], *args)
+        model_info = sd_models.checkpoints_list[model_name]
+        return do_convert(MockModelInfo(model_info.filename), *args)
 
     else:
         return "Error: must choose a model"
