@@ -44,6 +44,7 @@ def add_tab():
                 with gr.Row():
                     force_position_id = gr.Checkbox(label="Force CLIP position_id to int64 before convert", value=True)
                     fix_clip = gr.Checkbox(label="Fix clip", value=False)
+                    delete_known_junk_data = gr.Checkbox(label="Delete known junk data", value=False)
 
                 with gr.Row(visible=False) as extra_options:
                     specific_part_conv = ["copy", "convert", "delete"]
@@ -77,7 +78,8 @@ def add_tab():
                     vae_conv,
                     others_conv,
                     fix_clip,
-                    force_position_id
+                    force_position_id,
+                    delete_known_junk_data
                 ],
                 outputs=[submit_result]
             )

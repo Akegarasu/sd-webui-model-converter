@@ -132,8 +132,7 @@ def do_convert(model_info: MockModelInfo,
                checkpoint_formats,
                precision, conv_type, custom_name,
                unet_conv, text_encoder_conv, vae_conv, others_conv,
-               fix_clip, force_position_id):
-
+               fix_clip, force_position_id, delete_known_junk_data):
     if len(checkpoint_formats) == 0:
         return "Error: at least choose one model save format"
 
@@ -190,6 +189,21 @@ def do_convert(model_info: MockModelInfo,
     else:
         for k, v in tqdm.tqdm(state_dict.items()):
             _hf(k, v)
+
+    if delete_known_junk_data:
+        known_junk_data_prefix = [
+            "embedding_manager.embedder.",
+            "lora_te_text_model",
+            "control_model."
+        ]
+        need_delete = []
+        for key in ok.keys():
+            for jk in known_junk_data_prefix:
+                if key.startswith(jk):
+                    need_delete.append(key)
+
+        for k in need_delete:
+            del ok[k]
 
     output = ""
     ckpt_dir = os.path.dirname(model_info.filepath)
