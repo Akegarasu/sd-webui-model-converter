@@ -89,6 +89,9 @@ def fix_model(model, fix_clip=False, force_position_id=False):
                 print(f"fixed broken clip\n{broken}")
             else:
                 print("clip in this model is fine, skip fixing...")
+        else:
+            print("missing position id in model, try fixing...")
+            model[position_id_key] = torch.Tensor([list(range(77))]).to(torch.int64)
 
     return model
 
