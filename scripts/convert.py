@@ -71,7 +71,7 @@ def fix_model(model, fix_clip=False, force_position_id=False):
                 new_key = k.replace(r, nai_keys[r])
                 model[new_key] = model[k]
                 del model[k]
-                print(f"fixed novelai error key {k}")
+                print(f"[Converter] Fixed novelai error key {k}")
                 break
 
     if force_position_id and position_id_key in model:
@@ -86,11 +86,11 @@ def fix_model(model, fix_clip=False, force_position_id=False):
             broken = [i for i in range(77) if broken[0][i]]
             if len(broken) != 0:
                 model[position_id_key] = correct
-                print(f"fixed broken clip\n{broken}")
+                print(f"[Converter] Fixed broken clip\n{broken}")
             else:
-                print("clip in this model is fine, skip fixing...")
+                print("[Converter] Clip in this model is fine, skip fixing...")
         else:
-            print("missing position id in model, try fixing...")
+            print("[Converter] Missing position id in model, try fixing...")
             model[position_id_key] = torch.Tensor([list(range(77))]).to(torch.int64)
 
     return model
@@ -101,7 +101,7 @@ def convert_warp(
         *args
 ):
     if sum(map(bool, [model_name, model_path, directory])) != 1:
-        print("Check your inputs. Multiple input was set or missing input")
+        print("[Converter] Check your inputs. Multiple input was set or missing input")
         return
 
     if directory != "":
@@ -149,7 +149,7 @@ def do_convert(model_info: MockModelInfo,
     shared.state.begin()
     shared.state.job = 'model-convert'
     shared.state.textinfo = f"Loading {model_info.filename}..."
-    print(f"Loading {model_info.filename}...")
+    print(f"[Converter] Loading {model_info.filename}...")
 
     ok = {}
     state_dict = load_model(model_info.filepath)
@@ -169,7 +169,7 @@ def do_convert(model_info: MockModelInfo,
         elif conv_t == "delete":
             return
 
-    print("Converting model...")
+    print("[Converter] Converting model...")
 
     if conv_type == "ema-only":
         for k in tqdm.tqdm(state_dict):
@@ -226,7 +226,7 @@ def do_convert(model_info: MockModelInfo,
         _save_name = save_name + ext
 
         save_path = os.path.join(ckpt_dir, _save_name)
-        print(f"Saving to {save_path}...")
+        print(f"[Converter] Saving to {save_path}...")
 
         if fmt == "safetensors":
             safetensors.torch.save_file(ok, save_path)
