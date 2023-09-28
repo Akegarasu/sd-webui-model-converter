@@ -1,7 +1,7 @@
 # sd-webui-model-converter
 
 Model convert extension , Used for [AUTOMATIC1111's stable diffusion webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui)
-![image](https://user-images.githubusercontent.com/36563862/211143190-1bbf4fa9-5d95-4d00-b4dc-0f617caf3312.png)
+![image](https://github.com/Akegarasu/sd-webui-model-converter/assets/36563862/3f160408-6816-4fb5-9b27-1217126f5a6e)
 
 ## Features 
 
@@ -22,11 +22,10 @@ This option will reset CLIP position to `torch.Tensor([list(range(77))]).to(torc
 
 ### Force CLIP position_id to int64 before convert
 
-If you use this extension to convert a model to fp16, which has an incorrect CLIP,
-the precision of the CLIP position_id may decrease during the compression process,
-which may coincidentally fix the offset.
+If you use this extension to convert a model to fp16, and the model has an incorrect CLIP, the precision of the CLIP position_id may decrease during the compression process, which might coincidentally correct the offset.
 
 ![image](https://github.com/Akegarasu/sd-webui-model-converter/assets/36563862/d057d530-4b00-4937-ab30-8b8bd50fbd93)
 
-If you do not want to fix this CLIP offset coincidentally (because fixing it would change the model, even though the fix is correct, not everyone likes the most correct, right :P ), use this option. It will force the CLIP position_id to int64,
-and keep the incorrect CLIP.
+If you do not wish to correct this CLIP offset coincidentally (because fixing it would alter the model, 
+even though the correction is accurate, not everyone prefers the most correct, right? :P), 
+you can use this option. It will force the CLIP position_id to be int64 and retain the incorrect CLIP
