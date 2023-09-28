@@ -1,6 +1,6 @@
 import gradio as gr
 from modules import script_callbacks
-from modules import sd_models
+from modules import sd_models, sd_vae
 from modules.ui import create_refresh_button
 from scripts import convert
 
@@ -42,6 +42,10 @@ def add_tab():
                     show_extra_options = gr.Checkbox(label="Show extra options", value=False)
 
                 with gr.Row():
+                    bake_in_vae = gr.Dropdown(choices=["None"] + list(sd_vae.vae_dict), value="None", label="Bake in VAE")
+                    create_refresh_button(bake_in_vae, sd_vae.refresh_vae_list, lambda: {"choices": ["None"] + list(sd_vae.vae_dict)}, "model_converter_refresh_bake_in_vae")
+
+                with gr.Row():
                     force_position_id = gr.Checkbox(label="Force CLIP position_id to int64 before convert", value=True)
                     fix_clip = gr.Checkbox(label="Fix clip", value=False)
                     delete_known_junk_data = gr.Checkbox(label="Delete known junk data", value=False)
@@ -73,6 +77,7 @@ def add_tab():
                     input_directory,
                     checkpoint_formats,
                     precision, m_type, custom_name,
+                    bake_in_vae,
                     unet_conv,
                     text_encoder_conv,
                     vae_conv,

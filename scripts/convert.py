@@ -4,7 +4,7 @@ import torch
 import safetensors.torch
 from torch import Tensor
 from modules import shared
-from modules import sd_models
+from modules import sd_models, sd_vae
 
 # position_ids in clip is int64. model_ema.num_updates is int32
 dtypes_to_fp16 = {torch.float32, torch.float64, torch.bfloat16}
@@ -135,6 +135,7 @@ def convert_warp(
 def do_convert(model_info: MockModelInfo,
                checkpoint_formats,
                precision, conv_type, custom_name,
+               bake_in_vae,
                unet_conv, text_encoder_conv, vae_conv, others_conv,
                fix_clip, force_position_id, delete_known_junk_data):
     if len(checkpoint_formats) == 0:
@@ -208,6 +209,16 @@ def do_convert(model_info: MockModelInfo,
 
         for k in need_delete:
             del ok[k]
+
+    bake_in_vae_filename = sd_vae.vae_dict.get(bake_in_vae, None)
+    if bake_in_vae_filename is not None:
+        print(f"[Converter] Baking in VAE from {bake_in_vae_filename}")
+        vae_dict = sd_vae.load_vae_dict(bake_in_vae_filename, map_location='cpu')
+
+        for k, v in vae_dict.items():
+            _hf(k, vae_dict[k])
+
+        del vae_dict
 
     output = ""
     ckpt_dir = os.path.dirname(model_info.filepath)
