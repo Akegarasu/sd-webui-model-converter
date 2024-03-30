@@ -34,7 +34,7 @@ def add_tab():
                             input_directory = gr.Textbox(label="Input Directory")
 
                 with gr.Row():
-                    precision = gr.Radio(choices=["fp32", "fp16", "bf16"], value="fp16", label="Precision")
+                    precision = gr.Radio(choices=["fp32", "fp16", "bf16", "fp8"], value="fp16", label="Precision")
                     m_type = gr.Radio(choices=["disabled", "no-ema", "ema-only"], value="disabled", label="Pruning Methods")
 
                 with gr.Row():
