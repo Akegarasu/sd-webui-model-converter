@@ -15,7 +15,7 @@ def add_tab():
             with gr.Column(variant='panel'):
                 gr.HTML(value="<p>Converted checkpoints will be saved in your <b>checkpoint</b> directory.</p>")
                 with gr.Tabs():
-                    with gr.TabItem(label='Single process'):
+                    with gr.TabItem(label='Single process') as single_process:
                         with gr.Row():
                             model_name = gr.Dropdown(sd_models.checkpoint_tiles(),
                                                      elem_id="model_converter_model_name",
@@ -25,11 +25,11 @@ def add_tab():
                                                   "refresh_checkpoint_Z")
                         custom_name = gr.Textbox(label="Custom Name (Optional)")
 
-                    with gr.TabItem(label='Input file path'):
+                    with gr.TabItem(label='Input file path') as input_file_path:
                         with gr.Row():
                             model_path = gr.Textbox(label="model path")
 
-                    with gr.TabItem(label='Batch from directory'):
+                    with gr.TabItem(label='Batch from directory') as batch_from_directory:
                         with gr.Row():
                             input_directory = gr.Textbox(label="Input Directory")
 
@@ -63,6 +63,10 @@ def add_tab():
             with gr.Column(variant='panel'):
                 submit_result = gr.Textbox(elem_id="model_converter_result", show_label=False)
 
+            path_mode = gr.Number(value=0, visible=False)
+            for i, tab in enumerate([single_process, input_file_path, batch_from_directory]):
+                tab.select(fn=lambda tabnum=i: tabnum, inputs=[], outputs=[path_mode])
+
             show_extra_options.change(
                 fn=lambda x: gr_show(x),
                 inputs=[show_extra_options],
@@ -72,6 +76,7 @@ def add_tab():
             model_converter_convert.click(
                 fn=convert.convert_warp,
                 inputs=[
+                    path_mode,
                     model_name,
                     model_path,
                     input_directory,
