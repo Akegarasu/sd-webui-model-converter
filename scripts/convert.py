@@ -110,39 +110,38 @@ def is_sdxl_model(model):
 
 
 def convert_warp(
-        model_name, model_path, directory,
+        path_mode, model_name, model_path, directory,
         *args
 ):
-    if sum(map(bool, [model_name, model_path, directory])) != 1:
-        print("[Converter] Check your inputs. Multiple input was set or missing input")
-        return
+    match path_mode:
+        case 0:  # single process
+            if model_info := sd_models.checkpoints_list.get(model_name, None):
+                return do_convert(MockModelInfo(model_info.filename), *args)
+            return "Error: model not found"
 
-    if directory != "":
-        if not os.path.exists(directory) or not os.path.isdir(directory):
-            return "Error: path not exists or not dir"
+        case 1:  # input file path
+            if os.path.exists(model_path):
+                return do_convert(MockModelInfo(model_path), *args)
+            return f'Error: model path "{model_path}" not exists'
 
-        files = [f for f in os.listdir(directory) if f.endswith(".ckpt") or f.endswith(".safetensors")]
+        case 2:  # batch from directory
+            if not os.path.isdir(directory) or not os.path.exists(directory):
+                return f'Error: path "{directory}" not exists or not dir'
 
-        if len(files) == 0:
-            return "Error: cant found model in directory"
+            if not (files := [f for f in os.listdir(directory) if f.endswith(".ckpt") or f.endswith(".safetensors")]):
+                return "Error: cant found model in directory"
 
-        # remove custom filename in batch processing
-        _args = list(args)
-        _args[3] = ""
+            # remove custom filename in batch processing
+            _args = list(args)
+            _args[3] = ""
 
-        for m in files:
-            do_convert(MockModelInfo(os.path.join(directory, m)), *_args)
+            for m in files:
+                do_convert(MockModelInfo(os.path.join(directory, m)), *_args)
 
-    elif model_path != "":
-        if os.path.exists(model_path):
-            return do_convert(MockModelInfo(model_path), *args)
+            return "Batch processing done"
 
-    elif model_name != "":
-        model_info = sd_models.checkpoints_list[model_name]
-        return do_convert(MockModelInfo(model_info.filename), *args)
-
-    else:
-        return "Error: must choose a model"
+        case _:
+            return f"Error: unknown mode {path_mode}"
 
 
 def do_convert(model_info: MockModelInfo,
