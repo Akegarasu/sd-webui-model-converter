@@ -57,8 +57,7 @@ def add_tab():
                     vae_conv = gr.Dropdown(specific_part_conv, value="convert", label="vae")
                     others_conv = gr.Dropdown(specific_part_conv, value="convert", label="others")
 
-                model_converter_convert = gr.Button(elem_id="model_converter_convert", label="Convert",
-                                                    variant='primary')
+                model_converter_convert = gr.Button(elem_id="model_converter_convert", variant='primary')
 
             with gr.Column(variant='panel'):
                 submit_result = gr.Textbox(elem_id="model_converter_result", show_label=False)
